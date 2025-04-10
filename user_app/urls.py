@@ -1,17 +1,27 @@
 from django.urls import path
-from . import views
+from .views import (
+    UserPortalView,
+    UserProfileView,
+    UpdateUserEmailView,
+    AndroidAppUserListView,
+    TaskCreateView,
+    signup_user
+)
 
 urlpatterns = [
-    # Optional: serve user_portal.html from this app directly if needed
-    path('', views.UserPortalView.as_view(), name='user-portal'),
+    # Serve the main user portal HTML
+    path('', UserPortalView.as_view(), name='user-portal'),
 
-    # User Profile
-    path('profile/', views.UserProfileView.as_view(), name='user-profile'),
-    path('profile/update/', views.UpdateProfileView.as_view(), name='user-profile-update'),
+    # Signup route
+    path('signup/', signup_user, name='signup'),
 
-    # Apps list
-    path('apps/', views.AndroidAppListView.as_view(), name='app-list'),
+    # Profile endpoints
+    path('profile/', UserProfileView.as_view(), name='user-profile'),
+    path('profile/update/', UpdateUserEmailView.as_view(), name='user-profile-update'),
+
+    # App listing for users
+    path('apps/', AndroidAppUserListView.as_view(), name='user-app-list'),
 
     # Task submission
-    path('tasks/create/', views.TaskCreateView.as_view(), name='task-create'),
+    path('tasks/create/', TaskCreateView.as_view(), name='task-create'),
 ]
