@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import TemplateView
 
 # JWT Authentication Views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -23,6 +24,9 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    # Default root: serve user portal HTML
+    path('', TemplateView.as_view(template_name='user_portal.html'), name='home'),
+
     # Django Admin
     path('admin/', admin.site.urls),
 
@@ -30,15 +34,15 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # API Endpoints for Custom Apps
+    # API Endpoints
     path('api/admin_panel/', include('admin_panel.urls')),
     path('api/user_app/', include('user_app.urls')),
 
-    # Swagger & Redoc API Documentation
+    # Swagger & Redoc
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
 
-# Only in development: serve media files
+# Only serve media in DEBUG mode
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
