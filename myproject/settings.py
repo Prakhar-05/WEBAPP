@@ -71,7 +71,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'myproject.wsgi.application'
 
 # ─────────────── DATABASE CONFIGURATION ───────────────
-# Use dj_database_url to pick up DATABASE_URL env variable (Railway will provide PostgreSQL URL)
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'),
@@ -104,7 +103,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # ─────────────── CORS CONFIGURATION ───────────────
 CORS_ALLOW_ALL_ORIGINS = True
-# (In production, consider restricting CORS_ALLOWED_ORIGINS for better security.)
 
 # ─────────────── REST FRAMEWORK CONFIG ───────────────
 REST_FRAMEWORK = {
@@ -114,6 +112,19 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     )
+}
+
+# ─────────────── LOGGING CONFIGURATION ───────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': { 'class': 'logging.StreamHandler', },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
 }
 
 # ─────────────── DEFAULT AUTO FIELD ───────────────
