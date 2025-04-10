@@ -1,277 +1,80 @@
-<!-- user_portal.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>User Portal</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .container { max-width: 900px; margin: auto; }
-    input, textarea, select { width: 100%; padding: 10px; margin-bottom: 10px; }
-    button { padding: 10px 20px; margin-bottom: 20px; }
-    .section { margin-bottom: 30px; }
-    #dropzone {
-      border: 2px dashed #ccc;
-      padding: 20px;
-      text-align: center;
-      color: #ccc;
-    }
-    #dropzone.hover { border-color: #333; color: #333; }
+    .form-container { display: none; }
+    .active { display: block; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- User Login Section -->
-    <div class="section" id="user-login-section">
-      <h1>User Portal</h1>
-      <h2>User Login</h2>
-      <form id="userLoginForm">
-        <input type="text" id="userUsername" placeholder="Username" required>
-        <input type="password" id="userPassword" placeholder="Password" required>
-        <button type="submit">Login</button>
-      </form>
-      <div id="userLoginResponse" style="color:red;"></div>
-    </div>
+  <h1>User Portal</h1>
 
-    <!-- User Content Section (hidden until login) -->
-    <div class="section" id="user-content" style="display:none;">
-      <h2>User Profile</h2>
-      <div id="profile"></div>
+  <button onclick="showForm('loginForm')">Login</button>
+  <button onclick="showForm('signupForm')">Sign Up</button>
 
-      <!-- Update Email Section -->
-      <h2>Update Email</h2>
-      <form id="updateEmailForm">
-        <input type="email" id="emailInput" placeholder="Enter new email" required>
-        <button type="submit">Update Email</button>
-      </form>
-      <div id="emailUpdateResponse" style="color:green;"></div>
-
-      <!-- Available Android Apps Dropdown -->
-      <h2>Available Android Apps</h2>
-      <select id="appSelector"></select>
-
-      <!-- Upload Task Screenshot Section -->
-      <h2>Upload Task Screenshot</h2>
-      <!-- Drag-and-drop area with a file input fallback -->
-      <div id="dropzone">Drag and drop your screenshot here, or select a file below</div>
-      <input type="file" id="screenshotInput" accept="image/*" style="margin-top:10px;">
-      <button id="submitTask">Submit Task</button>
-      <div id="uploadResponse"></div>
-
-      <button id="userLogoutButton" style="margin-top:20px;">Logout</button>
-    </div>
+  <!-- LOGIN FORM -->
+  <div id="loginForm" class="form-container active">
+    <h2>Login</h2>
+    <input type="text" id="loginUsername" placeholder="Username"><br>
+    <input type="password" id="loginPassword" placeholder="Password"><br>
+    <button onclick="loginUser()">Login</button>
   </div>
 
+  <!-- SIGNUP FORM -->
+  <div id="signupForm" class="form-container">
+    <h2>Sign Up</h2>
+    <input type="text" id="signupUsername" placeholder="New Username"><br>
+    <input type="password" id="signupPassword" placeholder="New Password"><br>
+    <button onclick="signupUser()">Sign Up</button>
+  </div>
+
+  <div id="status"></div>
+
   <script>
-    // Use relative URLs so that when deployed the requests hit the correct domain.
-    const API_BASE_USER = '/api/user_app';
-    // Relative token endpoints (assumes the same host)
-    const TOKEN_URL = '/api/token/';
-    const REFRESH_URL = '/api/token/refresh/';
-    
-    let USER_JWT_TOKEN = localStorage.getItem('user_access') || '';
-
-    // Show content section if already logged in.
-    function showUserContent() {
-      document.getElementById('user-login-section').style.display = 'none';
-      document.getElementById('user-content').style.display = 'block';
-      loadProfile();
-      loadApps();
+    function showForm(formId) {
+      document.querySelectorAll('.form-container').forEach(form => form.classList.remove('active'));
+      document.getElementById(formId).classList.add('active');
     }
 
-    if (USER_JWT_TOKEN) showUserContent();
+    function loginUser() {
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
 
-    async function refreshUserToken() {
-      const refresh = localStorage.getItem('user_refresh');
-      if (!refresh) return false;
-      try {
-        const res = await fetch(REFRESH_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          USER_JWT_TOKEN = data.access;
-          localStorage.setItem('user_access', data.access);
-          return true;
-        }
-        return false;
-      } catch (err) {
-        console.error("User token refresh error:", err);
-        return false;
-      }
-    }
-
-    async function fetchWithRefresh(url, options) {
-      let res = await fetch(url, options);
-      if (res.status === 401) {
-        const refreshed = await refreshUserToken();
-        if (refreshed) {
-          options.headers['Authorization'] = 'Bearer ' + USER_JWT_TOKEN;
-          res = await fetch(url, options); // Retry request with new token.
-        } else {
-          alert("Session expired. Please log in again.");
-          return null;
-        }
-      }
-      return res;
-    }
-
-    // User login handler.
-    document.getElementById('userLoginForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const username = document.getElementById('userUsername').value.trim();
-      const password = document.getElementById('userPassword').value;
-      try {
-        const res = await fetch(TOKEN_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-        if (res.ok && data.access) {
-          USER_JWT_TOKEN = data.access;
-          localStorage.setItem('user_access', data.access);
-          localStorage.setItem('user_refresh', data.refresh);
-          document.getElementById('userLoginResponse').innerText = 'Login successful ✅';
-          showUserContent();
-        } else {
-          document.getElementById('userLoginResponse').innerText = data.detail || 'Login failed ❌';
-        }
-      } catch (error) {
-        console.error('User login error:', error);
-        document.getElementById('userLoginResponse').innerText = 'Network or server error.';
-      }
-    });
-
-    // Load profile function.
-    async function loadProfile() {
-      try {
-        const res = await fetchWithRefresh(`${API_BASE_USER}/profile/?_=${new Date().getTime()}`, {
-          headers: { 'Authorization': 'Bearer ' + USER_JWT_TOKEN },
-          cache: 'no-store'
-        });
-        if (!res) return;
-        const profile = await res.json();
-        const email = profile.email ? profile.email : 'Email not provided';
-        document.getElementById('profile').innerHTML = `
-          <p><strong>Username:</strong> ${profile.username}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Points:</strong> ${profile.points_earned}</p>
-          <p><strong>Tasks Completed:</strong> ${profile.tasks_completed}</p>
-        `;
-      } catch (error) {
-        console.error('Load profile error:', error);
-        document.getElementById('profile').innerText = 'Profile load error';
-      }
-    }
-
-    // Load apps and populate the dropdown.
-    async function loadApps() {
-      try {
-        const res = await fetchWithRefresh(`${API_BASE_USER}/apps/`, {
-          headers: { 'Authorization': 'Bearer ' + USER_JWT_TOKEN }
-        });
-        if (!res) return;
-        const apps = await res.json();
-        const appSelector = document.getElementById('appSelector');
-        appSelector.innerHTML = '';
-        apps.forEach(app => {
-          const option = document.createElement('option');
-          option.value = app.id;
-          option.textContent = `${app.name} - Points: ${app.points}`;
-          appSelector.appendChild(option);
-        });
-      } catch (error) {
-        console.error('Load apps error:', error);
-        document.getElementById('apps').innerText = 'Apps load error';
-      }
-    }
-
-    // Handle email update submission.
-    document.getElementById('updateEmailForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const email = document.getElementById('emailInput').value;
-      try {
-        const res = await fetchWithRefresh(`${API_BASE_USER}/profile/update/`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': 'Bearer ' + USER_JWT_TOKEN,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById('emailUpdateResponse').innerText = 'Email updated successfully ✅';
-          loadProfile();
-        } else {
-          document.getElementById('emailUpdateResponse').innerText = data.detail || 'Update failed ❌';
-        }
-      } catch (error) {
-        console.error('Update email error:', error);
-        document.getElementById('emailUpdateResponse').innerText = 'Email update error';
-      }
-    });
-
-    // Handle file input change for screenshot selection.
-    let droppedFile = null;
-    const screenshotInput = document.getElementById('screenshotInput');
-    screenshotInput.addEventListener('change', (e) => {
-      droppedFile = e.target.files[0];
-      document.getElementById('dropzone').innerText = `Selected file: ${droppedFile.name}`;
-    });
-
-    // Handle drag-and-drop for screenshot selection.
-    const dropzone = document.getElementById('dropzone');
-    dropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropzone.classList.add('hover');
-    });
-    dropzone.addEventListener('dragleave', () => {
-      dropzone.classList.remove('hover');
-    });
-    dropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropzone.classList.remove('hover');
-      droppedFile = e.dataTransfer.files[0];
-      dropzone.innerText = `Selected file: ${droppedFile.name}`;
-    });
-
-    // Handle task submission using the dropdown selection and file input.
-    document.getElementById('submitTask').addEventListener('click', async function () {
-      if (!droppedFile) return alert('Please select a screenshot file.');
-      const appId = document.getElementById('appSelector').value;
-      if (!appId) return alert('No app selected.');
-      const formData = new FormData();
-      formData.append('app_id', appId);
-      formData.append('screenshot', droppedFile);
-
-      const res = await fetchWithRefresh(`${API_BASE_USER}/tasks/create/`, {
+      fetch('/api/token/', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + USER_JWT_TOKEN },
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.access) {
+          localStorage.setItem('jwt', data.access);
+          document.getElementById('status').innerText = 'Login successful!';
+        } else {
+          document.getElementById('status').innerText = 'Login failed.';
+        }
       });
-      if (!res) return;
-      const result = await res.json();
-      if (result.id) {
-        document.getElementById('uploadResponse').innerText = 'Task submitted! ✅';
-        droppedFile = null;
-        screenshotInput.value = '';
-        document.getElementById('dropzone').innerText = 'Drag and drop your screenshot here, or select a file below';
-        loadProfile();
-      } else {
-        document.getElementById('uploadResponse').innerText = JSON.stringify(result);
-      }
-    });
+    }
 
-    document.getElementById('userLogoutButton').addEventListener('click', function () {
-      USER_JWT_TOKEN = '';
-      localStorage.removeItem('user_access');
-      localStorage.removeItem('user_refresh');
-      location.reload();
-    });
+    function signupUser() {
+      const username = document.getElementById('signupUsername').value;
+      const password = document.getElementById('signupPassword').value;
+
+      fetch('/api/user_app/signup/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => {
+        if (res.status === 201) {
+          document.getElementById('status').innerText = 'Signup successful! You can now login.';
+          showForm('loginForm');
+        } else {
+          document.getElementById('status').innerText = 'Signup failed.';
+        }
+      });
+    }
   </script>
 </body>
 </html>
