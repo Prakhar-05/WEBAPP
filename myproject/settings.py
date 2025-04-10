@@ -28,7 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party
-    'corsheaders',  # ✅ Needed for CORS support
+    'corsheaders',
     'rest_framework',
     'drf_yasg',
 
@@ -40,10 +40,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-
-    # ✅ Place CORS middleware at the top before CommonMiddleware
-    'corsheaders.middleware.CorsMiddleware',
-
+    'corsheaders.middleware.CorsMiddleware',  # CORS middleware first
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -99,17 +96,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # New line: where collectstatic gathers static files
 
-# ─────────────── CORS HEADERS ───────────────
-# ✅ Enables frontend (even on another domain or port) to access backend
+# ─────────────── CORS CONFIGURATION ───────────────
 CORS_ALLOW_ALL_ORIGINS = True
-
-# If you want to restrict it in production (instead of True), use:
-# CORS_ALLOWED_ORIGINS = [
-#     "https://yourfrontend.com",
-#     "http://localhost:3000",
-# ]
 
 # ─────────────── REST FRAMEWORK CONFIG ───────────────
 REST_FRAMEWORK = {
