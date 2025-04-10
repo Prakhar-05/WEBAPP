@@ -1,11 +1,11 @@
 from django.urls import path
 from .views import (
-    UserPortalView,
-    UserProfileView,
-    UpdateUserEmailView,
-    AndroidAppUserListView,
-    TaskCreateView,
-    signup_user,  # ✅ Import the signup view
+    UserPortalView,              # ✅ Main user portal page
+    UserProfileView,             # ✅ Profile view
+    UpdateUserEmailView,         # ✅ Profile update
+    AndroidAppUserListView,      # ✅ List apps
+    TaskCreateView,              # ✅ Submit tasks
+    signup_user,                 # ✅ Signup API
 )
 
 urlpatterns = [
@@ -13,7 +13,7 @@ urlpatterns = [
     path('', UserPortalView.as_view(), name='user-portal'),
 
     # Signup endpoint.
-    path('signup/', signup_user, name='signup'),  # ✅ Add this line
+    path('signup/', signup_user, name='signup'),
 
     # Profile endpoints.
     path('profile/', UserProfileView.as_view(), name='user-profile'),
