@@ -24,13 +24,13 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    # Default root: serve user portal HTML
+    # Default route: serves user_portal.html as the home page
     path('', TemplateView.as_view(template_name='user_portal.html'), name='home'),
 
-    # Django Admin
+    # Django Admin site
     path('admin/', admin.site.urls),
 
-    # JWT Auth
+    # JWT Auth endpoints
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
@@ -38,11 +38,10 @@ urlpatterns = [
     path('api/admin_panel/', include('admin_panel.urls')),
     path('api/user_app/', include('user_app.urls')),
 
-    # Swagger & Redoc
+    # Swagger & Redoc documentation
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
 
-# Only serve media in DEBUG mode
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
