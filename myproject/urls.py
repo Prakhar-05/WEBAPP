@@ -5,12 +5,24 @@ from django.conf.urls.static import static
 from django.views.generic import TemplateView
 
 # JWT Authentication Views
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 # Swagger Documentation Setup
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+
+# Custom Token view to add error logging.
+class CustomTokenObtainPairView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            print("JWT Token Error:", e)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Swagger Schema Configuration
 schema_view = get_schema_view(
@@ -30,8 +42,8 @@ urlpatterns = [
     # Django Admin site
     path('admin/', admin.site.urls),
 
-    # JWT Auth endpoints
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # JWT Auth endpoints using the custom view.
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # API Endpoints for custom apps
