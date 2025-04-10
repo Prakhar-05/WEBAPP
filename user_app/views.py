@@ -35,11 +35,11 @@ class TaskCreateView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = TaskSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            # Save the task and update user stats
+            # Save the task and update user stats.
             task = serializer.save(user=request.user)
             user = request.user
             user.tasks_completed += 1
-            # Ensure task.app.points exists and is numeric
+            # Ensure task.app.points exists and is numeric.
             user.points_earned += task.app.points  
             user.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
