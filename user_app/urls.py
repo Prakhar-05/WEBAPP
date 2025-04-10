@@ -5,23 +5,19 @@ from .views import (
     UpdateUserEmailView,
     AndroidAppUserListView,
     TaskCreateView,
-    signup_user
 )
 
 urlpatterns = [
-    # Serve the main user portal HTML
+    # Serve the main user portal HTML page.
     path('', UserPortalView.as_view(), name='user-portal'),
 
-    # Signup route
-    path('signup/', signup_user, name='signup'),
-
-    # Profile endpoints
+    # Profile endpoints.
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     path('profile/update/', UpdateUserEmailView.as_view(), name='user-profile-update'),
 
-    # App listing for users
+    # App listing for users.
     path('apps/', AndroidAppUserListView.as_view(), name='user-app-list'),
 
-    # Task submission
+    # Task submission.
     path('tasks/create/', TaskCreateView.as_view(), name='task-create'),
 ]
