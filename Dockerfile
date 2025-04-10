@@ -1,7 +1,7 @@
 # Use official Python image as base
 FROM python:3.11-slim
 
-# Set environment variables
+# Set environment variables to improve Python performance
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
@@ -14,18 +14,18 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Copy requirements.txt and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .
 
-# Expose port (for Railway / Gunicorn)
-EXPOSE 8000
-
-# Collect static files (optional, for prod-ready builds)
+# Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Default command to run the app
+# Expose port (for Railway/Gunicorn)
+EXPOSE 8000
+
+# Default command to run the app via Gunicorn
 CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:8000"]
