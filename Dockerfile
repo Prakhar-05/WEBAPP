@@ -21,7 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
-# Collect static files
+# Collect static files (ensure STATIC_ROOT is set)
 RUN python manage.py collectstatic --noinput
 
 # Expose port (for Railway/Gunicorn)
