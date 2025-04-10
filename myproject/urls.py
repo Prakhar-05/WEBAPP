@@ -24,7 +24,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    # Default route: serves user_portal.html as the home page
+    # Default route serves the user portal HTML page
     path('', TemplateView.as_view(template_name='user_portal.html'), name='home'),
 
     # Django Admin site
@@ -34,7 +34,7 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # API Endpoints for local apps
+    # API Endpoints for custom apps
     path('api/admin_panel/', include('admin_panel.urls')),
     path('api/user_app/', include('user_app.urls')),
 
