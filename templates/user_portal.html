@@ -1,3 +1,4 @@
+<!-- user_portal.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,12 +33,12 @@
       <div id="userLoginResponse" style="color:red;"></div>
     </div>
 
-    <!-- User Content Section -->
+    <!-- User Content Section (Hidden until login) -->
     <div class="section" id="user-content" style="display:none;">
       <h2>User Profile</h2>
       <div id="profile"></div>
 
-      <!-- Update Email -->
+      <!-- Update Email Section -->
       <h2>Update Email</h2>
       <form id="updateEmailForm">
         <input type="email" id="emailInput" placeholder="Enter new email" required>
@@ -45,12 +46,13 @@
       </form>
       <div id="emailUpdateResponse" style="color:green;"></div>
 
-      <!-- Android App Dropdown -->
+      <!-- Available Android Apps Dropdown -->
       <h2>Available Android Apps</h2>
       <select id="appSelector"></select>
 
-      <!-- Screenshot Upload -->
+      <!-- Upload Task Screenshot Section -->
       <h2>Upload Task Screenshot</h2>
+      <!-- Drag-and-drop area with a file input fallback -->
       <div id="dropzone">Drag and drop your screenshot here, or select a file below</div>
       <input type="file" id="screenshotInput" accept="image/*" style="margin-top:10px;">
       <button id="submitTask">Submit Task</button>
@@ -87,30 +89,16 @@
           USER_JWT_TOKEN = data.access;
           localStorage.setItem('user_access', data.access);
           return true;
+        } else {
+          return false;
         }
-        return false;
       } catch (err) {
         console.error("User token refresh error:", err);
         return false;
       }
     }
 
-    async function fetchWithRefresh(url, options) {
-      let res = await fetch(url, options);
-      if (res.status === 401) {
-        const refreshed = await refreshUserToken();
-        if (refreshed) {
-          options.headers['Authorization'] = 'Bearer ' + USER_JWT_TOKEN;
-          res = await fetch(url, options);
-        } else {
-          alert("Session expired. Please log in again.");
-          return null;
-        }
-      }
-      return res;
-    }
-
-    document.getElementById('userLoginForm').addEventListener('submit', async function (e) {
+    document.getElementById('userLoginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const username = document.getElementById('userUsername').value.trim();
       const password = document.getElementById('userPassword').value;
@@ -136,15 +124,30 @@
       }
     });
 
+    // Utility function to make protected requests with auto-refresh on 401
+    async function fetchWithRefresh(url, options) {
+      let res = await fetch(url, options);
+      if (res.status === 401) {
+        const refreshed = await refreshUserToken();
+        if (refreshed) {
+          options.headers['Authorization'] = 'Bearer ' + USER_JWT_TOKEN;
+          res = await fetch(url, options); // retry
+        } else {
+          alert("Session expired. Please log in again.");
+          return null;
+        }
+      }
+      return res;
+    }
+
     async function loadProfile() {
       try {
-        const res = await fetchWithRefresh(`${API_BASE_USER}/profile/?_=${new Date().getTime()}`, {
-          headers: { 'Authorization': 'Bearer ' + USER_JWT_TOKEN },
-          cache: 'no-store'
+        const res = await fetchWithRefresh(`${API_BASE_USER}/profile/`, {
+          headers: { 'Authorization': 'Bearer ' + USER_JWT_TOKEN }
         });
         if (!res) return;
         const profile = await res.json();
-        const email = profile.email || 'Email not provided';
+        const email = profile.email ? profile.email : 'Email not provided';
         document.getElementById('profile').innerHTML = `
           <p><strong>Username:</strong> ${profile.username}</p>
           <p><strong>Email:</strong> ${email}</p>
@@ -164,6 +167,7 @@
         });
         if (!res) return;
         const apps = await res.json();
+        // Build a dropdown for app selection
         const appSelector = document.getElementById('appSelector');
         appSelector.innerHTML = '';
         apps.forEach(app => {
@@ -178,7 +182,8 @@
       }
     }
 
-    document.getElementById('updateEmailForm').addEventListener('submit', async function (e) {
+    // Handle email update submission
+    document.getElementById('updateEmailForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const email = document.getElementById('emailInput').value;
       try {
@@ -203,6 +208,7 @@
       }
     });
 
+    // Handle file input change for screenshot selection
     let droppedFile = null;
     const screenshotInput = document.getElementById('screenshotInput');
     screenshotInput.addEventListener('change', (e) => {
@@ -210,6 +216,7 @@
       document.getElementById('dropzone').innerText = `Selected file: ${droppedFile.name}`;
     });
 
+    // Handle drag and drop for screenshot selection
     const dropzone = document.getElementById('dropzone');
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -225,7 +232,8 @@
       dropzone.innerText = `Selected file: ${droppedFile.name}`;
     });
 
-    document.getElementById('submitTask').addEventListener('click', async function () {
+    // Handle task submission
+    document.getElementById('submitTask').addEventListener('click', async function() {
       if (!droppedFile) return alert('Please select a screenshot file.');
       const appId = document.getElementById('appSelector').value;
       if (!appId) return alert('No app selected.');
@@ -240,18 +248,11 @@
       });
       if (!res) return;
       const result = await res.json();
-      if (result.id) {
-        document.getElementById('uploadResponse').innerText = 'Task submitted! ✅';
-        droppedFile = null;
-        screenshotInput.value = '';
-        document.getElementById('dropzone').innerText = 'Drag and drop your screenshot here, or select a file below';
-        loadProfile();
-      } else {
-        document.getElementById('uploadResponse').innerText = JSON.stringify(result);
-      }
+      document.getElementById('uploadResponse').innerText =
+        result.id ? 'Task submitted!' : JSON.stringify(result);
     });
 
-    document.getElementById('userLogoutButton').addEventListener('click', function () {
+    document.getElementById('userLogoutButton').addEventListener('click', function() {
       USER_JWT_TOKEN = '';
       localStorage.removeItem('user_access');
       localStorage.removeItem('user_refresh');
