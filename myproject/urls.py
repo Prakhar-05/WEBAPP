@@ -34,7 +34,7 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # API Endpoints
+    # API Endpoints for local apps
     path('api/admin_panel/', include('admin_panel.urls')),
     path('api/user_app/', include('user_app.urls')),
 
@@ -45,3 +45,4 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
