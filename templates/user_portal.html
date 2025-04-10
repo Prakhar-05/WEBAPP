@@ -33,7 +33,7 @@
       <div id="userLoginResponse" style="color:red;"></div>
     </div>
 
-    <!-- User Content Section (Hidden until login) -->
+    <!-- User Content Section (hidden until login) -->
     <div class="section" id="user-content" style="display:none;">
       <h2>User Profile</h2>
       <div id="profile"></div>
@@ -63,9 +63,15 @@
   </div>
 
   <script>
-    const API_BASE_USER = 'http://127.0.0.1:8000/api/user_app';
+    // Use relative URLs so that when deployed the requests hit the correct domain.
+    const API_BASE_USER = '/api/user_app';
+    // Relative token endpoints (assumes the same host)
+    const TOKEN_URL = '/api/token/';
+    const REFRESH_URL = '/api/token/refresh/';
+    
     let USER_JWT_TOKEN = localStorage.getItem('user_access') || '';
 
+    // Show content section if already logged in.
     function showUserContent() {
       document.getElementById('user-login-section').style.display = 'none';
       document.getElementById('user-content').style.display = 'block';
@@ -79,7 +85,7 @@
       const refresh = localStorage.getItem('user_refresh');
       if (!refresh) return false;
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/token/refresh/', {
+        const res = await fetch(REFRESH_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh })
@@ -89,21 +95,36 @@
           USER_JWT_TOKEN = data.access;
           localStorage.setItem('user_access', data.access);
           return true;
-        } else {
-          return false;
         }
+        return false;
       } catch (err) {
         console.error("User token refresh error:", err);
         return false;
       }
     }
 
-    document.getElementById('userLoginForm').addEventListener('submit', async function(e) {
+    async function fetchWithRefresh(url, options) {
+      let res = await fetch(url, options);
+      if (res.status === 401) {
+        const refreshed = await refreshUserToken();
+        if (refreshed) {
+          options.headers['Authorization'] = 'Bearer ' + USER_JWT_TOKEN;
+          res = await fetch(url, options); // Retry request with new token.
+        } else {
+          alert("Session expired. Please log in again.");
+          return null;
+        }
+      }
+      return res;
+    }
+
+    // User login handler.
+    document.getElementById('userLoginForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       const username = document.getElementById('userUsername').value.trim();
       const password = document.getElementById('userPassword').value;
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/token/', {
+        const res = await fetch(TOKEN_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -124,26 +145,12 @@
       }
     });
 
-    // Utility function to make protected requests with auto-refresh on 401
-    async function fetchWithRefresh(url, options) {
-      let res = await fetch(url, options);
-      if (res.status === 401) {
-        const refreshed = await refreshUserToken();
-        if (refreshed) {
-          options.headers['Authorization'] = 'Bearer ' + USER_JWT_TOKEN;
-          res = await fetch(url, options); // retry
-        } else {
-          alert("Session expired. Please log in again.");
-          return null;
-        }
-      }
-      return res;
-    }
-
+    // Load profile function.
     async function loadProfile() {
       try {
-        const res = await fetchWithRefresh(`${API_BASE_USER}/profile/`, {
-          headers: { 'Authorization': 'Bearer ' + USER_JWT_TOKEN }
+        const res = await fetchWithRefresh(`${API_BASE_USER}/profile/?_=${new Date().getTime()}`, {
+          headers: { 'Authorization': 'Bearer ' + USER_JWT_TOKEN },
+          cache: 'no-store'
         });
         if (!res) return;
         const profile = await res.json();
@@ -160,6 +167,7 @@
       }
     }
 
+    // Load apps and populate the dropdown.
     async function loadApps() {
       try {
         const res = await fetchWithRefresh(`${API_BASE_USER}/apps/`, {
@@ -167,7 +175,6 @@
         });
         if (!res) return;
         const apps = await res.json();
-        // Build a dropdown for app selection
         const appSelector = document.getElementById('appSelector');
         appSelector.innerHTML = '';
         apps.forEach(app => {
@@ -182,8 +189,8 @@
       }
     }
 
-    // Handle email update submission
-    document.getElementById('updateEmailForm').addEventListener('submit', async function(e) {
+    // Handle email update submission.
+    document.getElementById('updateEmailForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       const email = document.getElementById('emailInput').value;
       try {
@@ -208,7 +215,7 @@
       }
     });
 
-    // Handle file input change for screenshot selection
+    // Handle file input change for screenshot selection.
     let droppedFile = null;
     const screenshotInput = document.getElementById('screenshotInput');
     screenshotInput.addEventListener('change', (e) => {
@@ -216,7 +223,7 @@
       document.getElementById('dropzone').innerText = `Selected file: ${droppedFile.name}`;
     });
 
-    // Handle drag and drop for screenshot selection
+    // Handle drag-and-drop for screenshot selection.
     const dropzone = document.getElementById('dropzone');
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -232,8 +239,8 @@
       dropzone.innerText = `Selected file: ${droppedFile.name}`;
     });
 
-    // Handle task submission
-    document.getElementById('submitTask').addEventListener('click', async function() {
+    // Handle task submission using the dropdown selection and file input.
+    document.getElementById('submitTask').addEventListener('click', async function () {
       if (!droppedFile) return alert('Please select a screenshot file.');
       const appId = document.getElementById('appSelector').value;
       if (!appId) return alert('No app selected.');
@@ -248,11 +255,18 @@
       });
       if (!res) return;
       const result = await res.json();
-      document.getElementById('uploadResponse').innerText =
-        result.id ? 'Task submitted!' : JSON.stringify(result);
+      if (result.id) {
+        document.getElementById('uploadResponse').innerText = 'Task submitted! ✅';
+        droppedFile = null;
+        screenshotInput.value = '';
+        document.getElementById('dropzone').innerText = 'Drag and drop your screenshot here, or select a file below';
+        loadProfile();
+      } else {
+        document.getElementById('uploadResponse').innerText = JSON.stringify(result);
+      }
     });
 
-    document.getElementById('userLogoutButton').addEventListener('click', function() {
+    document.getElementById('userLogoutButton').addEventListener('click', function () {
       USER_JWT_TOKEN = '';
       localStorage.removeItem('user_access');
       localStorage.removeItem('user_refresh');
