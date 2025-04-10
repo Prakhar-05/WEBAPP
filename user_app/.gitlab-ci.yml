@@ -1,5 +1,6 @@
 stages:
   - test
+  - deploy
 
 test:
   stage: test
@@ -10,3 +11,14 @@ test:
   script:
     - python manage.py check
     - python manage.py test
+
+deploy_to_railway:
+  stage: deploy
+  image: ubuntu
+  before_script:
+    - apt-get update && apt-get install -y curl
+    - curl -fsSL https://railway.app/install.sh | sh
+  script:
+    - railway up --service=$RAILWAY_SERVICE_NAME -d
+  only:
+    - main
