@@ -5,11 +5,15 @@ from .views import (
     UpdateUserEmailView,
     AndroidAppUserListView,
     TaskCreateView,
+    signup_user,  # ✅ Import the signup view
 )
 
 urlpatterns = [
     # Serve the main user portal HTML page.
     path('', UserPortalView.as_view(), name='user-portal'),
+
+    # Signup endpoint.
+    path('signup/', signup_user, name='signup'),  # ✅ Add this line
 
     # Profile endpoints.
     path('profile/', UserProfileView.as_view(), name='user-profile'),
