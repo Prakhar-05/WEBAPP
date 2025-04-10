@@ -1,0 +1,174 @@
+<!-- admin_dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .container { max-width: 800px; margin: auto; }
+    input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; }
+    button { padding: 10px 20px; }
+    .section { margin-bottom: 30px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Admin Login Section -->
+    <div class="section" id="admin-login-section">
+      <h1>Admin Dashboard</h1>
+      <h2>Admin Login</h2>
+      <form id="adminLoginForm">
+        <input type="text" id="adminUsername" placeholder="Username" required>
+        <input type="password" id="adminPassword" placeholder="Password" required>
+        <button type="submit">Login</button>
+      </form>
+      <div id="adminLoginResponse" style="color:red;"></div>
+    </div>
+
+    <!-- Admin Content Section (Hidden until login) -->
+    <div class="section" id="admin-content" style="display:none;">
+      <h2>Add New Android App</h2>
+      <form id="addAppForm">
+        <input type="text" id="name" placeholder="App Name" required>
+        <textarea id="description" placeholder="App Description"></textarea>
+        <input type="url" id="download_url" placeholder="Download URL" required>
+        <input type="number" id="points" placeholder="Points Awarded" required>
+        <button type="submit">Create App</button>
+      </form>
+      <div id="responseMessage"></div>
+
+      <h2>List All Android Apps</h2>
+      <button id="loadApps">Load Apps</button>
+      <div id="appsList"></div>
+
+      <button id="logoutButton" style="margin-top:20px;">Logout</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:8000/api/admin_panel';
+    let ADMIN_JWT_TOKEN = localStorage.getItem('admin_access') || '';
+
+    function showAdminContent() {
+      document.getElementById('admin-login-section').style.display = 'none';
+      document.getElementById('admin-content').style.display = 'block';
+    }
+
+    if (ADMIN_JWT_TOKEN) showAdminContent();
+
+    // Function to refresh the admin token
+    async function refreshAdminToken() {
+      const refresh = localStorage.getItem('admin_refresh');
+      if (!refresh) return false;
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/token/refresh/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          ADMIN_JWT_TOKEN = data.access;
+          localStorage.setItem('admin_access', data.access);
+          return true;
+        } else {
+          console.error("Refresh token expired");
+          return false;
+        }
+      } catch (error) {
+        console.error("Refresh error:", error);
+        return false;
+      }
+    }
+
+    // Admin login
+    document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const username = document.getElementById('adminUsername').value.trim();
+      const password = document.getElementById('adminPassword').value;
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/token/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok && data.access) {
+          ADMIN_JWT_TOKEN = data.access;
+          localStorage.setItem('admin_access', data.access);
+          localStorage.setItem('admin_refresh', data.refresh);
+          document.getElementById('adminLoginResponse').innerText = 'Login successful ✅';
+          showAdminContent();
+        } else {
+          document.getElementById('adminLoginResponse').innerText = data.detail || 'Login failed ❌';
+        }
+      } catch (error) {
+        console.error('Admin login error:', error);
+        document.getElementById('adminLoginResponse').innerText = 'Network or server error.';
+      }
+    });
+
+    // Submit app form with auto token refresh
+    document.getElementById('addAppForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const data = {
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value,
+        download_url: document.getElementById('download_url').value,
+        points: parseInt(document.getElementById('points').value)
+      };
+
+      async function createAppRequest() {
+        return fetch(`${API_BASE}/android-apps/create/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + ADMIN_JWT_TOKEN
+          },
+          body: JSON.stringify(data)
+        });
+      }
+
+      let res = await createAppRequest();
+      if (res.status === 401) {
+        const refreshed = await refreshAdminToken();
+        if (refreshed) {
+          res = await createAppRequest(); // Retry with new token
+        } else {
+          document.getElementById('responseMessage').innerText = 'Session expired. Please log in again.';
+          return;
+        }
+      }
+      const json = await res.json();
+      document.getElementById('responseMessage').innerText =
+        json.id ? "Android app created!" : JSON.stringify(json);
+    });
+
+    // Load app list
+    document.getElementById('loadApps').addEventListener('click', async function() {
+      try {
+        const res = await fetch(`${API_BASE}/android-apps/`, {
+          headers: { 'Authorization': 'Bearer ' + ADMIN_JWT_TOKEN }
+        });
+        const apps = await res.json();
+        let html = '<ul>';
+        apps.forEach(app => html += `<li>${app.name} - ${app.description}</li>`);
+        html += '</ul>';
+        document.getElementById('appsList').innerHTML = html;
+      } catch (error) {
+        console.error('Load apps error:', error);
+        document.getElementById('appsList').innerText = 'Loading error.';
+      }
+    });
+
+    // Logout
+    document.getElementById('logoutButton').addEventListener('click', function() {
+      ADMIN_JWT_TOKEN = '';
+      localStorage.removeItem('admin_access');
+      localStorage.removeItem('admin_refresh');
+      location.reload();
+    });
+  </script>
+</body>
+</html>
