@@ -40,7 +40,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # CORS middleware first
+
+    # CORS middleware must be placed near the top before CommonMiddleware.
+    'corsheaders.middleware.CorsMiddleware',
+
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -68,6 +71,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'myproject.wsgi.application'
 
 # ─────────────── DATABASE CONFIGURATION ───────────────
+# Use dj_database_url to pick up DATABASE_URL env variable (Railway will provide PostgreSQL URL)
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'),
@@ -94,12 +98,13 @@ USE_TZ = True
 
 # ─────────────── STATIC & MEDIA FILES ───────────────
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # New line: where collectstatic gathers static files
 
 # ─────────────── CORS CONFIGURATION ───────────────
 CORS_ALLOW_ALL_ORIGINS = True
+# (In production, consider restricting CORS_ALLOWED_ORIGINS for better security.)
 
 # ─────────────── REST FRAMEWORK CONFIG ───────────────
 REST_FRAMEWORK = {
@@ -111,5 +116,5 @@ REST_FRAMEWORK = {
     )
 }
 
-# ─────────────── AUTO FIELD ───────────────
+# ─────────────── DEFAULT AUTO FIELD ───────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
