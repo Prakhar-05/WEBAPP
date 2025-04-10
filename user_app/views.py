@@ -2,6 +2,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
+from django.views.generic import TemplateView  # ✅ Add this
+
+# ✅ Serve the user portal HTML page
+class UserPortalView(TemplateView):
+    template_name = 'user_portal.html'
 
 # ✅ Signup endpoint
 @api_view(['POST'])
