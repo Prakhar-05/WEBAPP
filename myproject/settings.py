@@ -15,7 +15,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ─────────────── ENVIRONMENT VARIABLES ───────────────
 SECRET_KEY = os.getenv('SECRET_KEY', 'insecure_default_key')  # Replace in production
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+
 
 # ─────────────── APPLICATION DEFINITION ───────────────
 INSTALLED_APPS = [
